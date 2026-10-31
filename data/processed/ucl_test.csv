@@ -1,0 +1,46 @@
+season,match_date,home_team,away_team,home_goals,away_goals,outcome,match_id,home_avg_goals_scored,home_avg_goals_conceded,home_win_rate,home_points_per_game,home_goal_difference,home_venue_points_per_game,away_avg_goals_scored,away_avg_goals_conceded,away_win_rate,away_points_per_game,away_goal_difference,away_venue_points_per_game
+2025-2026,2026-02-17,Galatasaray SK,Juventus FC,5,2,home_win,458,0.8,1.0,0.2,0.8,-0.2,1.6,1.6,0.6,0.6,2.2,1.0,1.0
+2025-2026,2026-02-17,Sport Lisboa e Benfica,Real Madrid CF,0,1,away_win,459,1.6,1.0,0.6,1.8,0.6,1.2,2.6,2.2,0.4,1.2,0.4,1.2
+2025-2026,2026-02-17,AS Monaco FC,Paris Saint-Germain FC,2,3,away_win,460,1.0,1.6,0.4,1.6,-0.6,1.2,1.6,1.6,0.2,1.0,0.0,2.0
+2025-2026,2026-02-17,Borussia Dortmund,Atalanta BC,2,0,home_win,461,1.4,2.0,0.2,0.8,-0.6,2.0,1.6,1.0,0.6,1.8,0.6,1.2
+2025-2026,2026-02-18,Qarabağ Ağdam FK,Newcastle United FC,1,6,away_win,465,1.4,3.2,0.2,0.8,-1.8,1.75,1.8,1.0,0.4,1.6,0.8,1.2
+2025-2026,2026-02-18,FK Bodø/Glimt,FC Internazionale Milano,3,1,home_win,462,1.8,1.6,0.4,1.4,0.2,1.0,1.2,1.4,0.4,1.2,-0.2,1.8
+2025-2026,2026-02-18,PAE Olympiakos SFP,Bayer 04 Leverkusen,0,2,away_win,463,1.8,1.2,0.6,2.0,0.6,1.25,1.6,0.8,0.6,2.0,0.8,1.4
+2025-2026,2026-02-18,Club Brugge KV,Club Atlético de Madrid,3,3,draw,464,2.0,2.0,0.4,1.4,0.0,1.4,2.0,1.4,0.6,2.0,0.6,0.8
+2025-2026,2026-02-24,Bayer 04 Leverkusen,PAE Olympiakos SFP,0,0,draw,468,1.8,0.8,0.6,2.0,1.0,1.0,1.6,1.4,0.6,1.8,0.2,1.5
+2025-2026,2026-02-24,FC Internazionale Milano,FK Bodø/Glimt,1,2,away_win,469,1.0,1.8,0.2,0.6,-0.8,1.8,2.4,1.6,0.6,2.0,0.8,1.25
+2025-2026,2026-02-24,Club Atlético de Madrid,Club Brugge KV,4,1,home_win,466,2.0,1.8,0.4,1.6,0.2,2.4,2.0,2.0,0.4,1.4,0.0,0.6
+2025-2026,2026-02-24,Newcastle United FC,Qarabağ Ağdam FK,3,2,home_win,467,2.6,1.2,0.4,1.6,1.4,1.8,1.2,4.0,0.2,0.6,-2.8,0.75
+2025-2026,2026-02-25,Juventus FC,Galatasaray SK,3,2,home_win,470,1.8,1.4,0.6,2.0,0.4,2.2,1.2,1.4,0.2,0.8,-0.2,0.6
+2025-2026,2026-02-25,Atalanta BC,Borussia Dortmund,4,1,home_win,471,1.4,1.4,0.4,1.2,0.0,1.4,1.6,1.2,0.4,1.4,0.4,0.8
+2025-2026,2026-02-25,Real Madrid CF,Sport Lisboa e Benfica,2,1,home_win,472,2.8,2.0,0.6,1.8,0.8,1.8,1.6,1.0,0.6,1.8,0.6,0.6
+2025-2026,2026-02-25,Paris Saint-Germain FC,AS Monaco FC,2,2,draw,473,2.0,1.6,0.4,1.6,0.4,2.0,1.2,2.2,0.2,1.0,-1.0,1.0
+2025-2026,2026-03-10,Club Atlético de Madrid,Tottenham Hotspur FC,5,2,home_win,474,2.4,1.8,0.4,1.6,0.6,2.4,2.8,1.0,0.8,2.4,1.8,1.25
+2025-2026,2026-03-10,Newcastle United FC,FC Barcelona,1,1,draw,475,3.0,1.2,0.6,2.2,1.8,2.4,2.6,2.0,0.6,2.0,0.6,1.4
+2025-2026,2026-03-10,Galatasaray SK,Liverpool FC,1,0,home_win,476,1.6,1.8,0.2,0.8,-0.2,2.0,2.4,0.8,0.8,2.4,1.6,2.4
+2025-2026,2026-03-10,Atalanta BC,FC Bayern München,1,6,away_win,477,1.6,1.6,0.4,1.2,0.0,2.0,2.0,1.2,0.8,2.4,0.8,2.0
+2025-2026,2026-03-11,Bayer 04 Leverkusen,Arsenal FC,1,1,draw,478,1.4,0.8,0.4,1.6,0.6,1.2,3.0,0.8,1.0,3.0,2.2,2.4
+2025-2026,2026-03-11,Paris Saint-Germain FC,Chelsea FC,5,2,home_win,479,1.4,1.4,0.2,1.2,0.0,1.6,2.0,1.2,0.6,2.0,0.8,1.0
+2025-2026,2026-03-11,Real Madrid CF,Manchester City FC,3,0,home_win,480,2.4,1.6,0.6,1.8,0.8,2.4,1.8,1.4,0.6,1.8,0.4,1.4
+2025-2026,2026-03-11,FK Bodø/Glimt,Sporting Clube de Portugal,3,0,home_win,481,2.4,1.2,0.8,2.6,1.2,1.4,2.0,1.4,0.6,2.0,0.6,1.0
+2025-2026,2026-03-17,Manchester City FC,Real Madrid CF,1,2,away_win,484,1.0,1.8,0.4,1.2,-0.8,1.8,2.8,1.2,0.8,2.4,1.6,1.8
+2025-2026,2026-03-17,Arsenal FC,Bayer 04 Leverkusen,2,0,home_win,485,2.6,1.0,0.8,2.6,1.6,2.4,1.2,0.6,0.4,1.6,0.6,2.0
+2025-2026,2026-03-17,Sporting Clube de Portugal,FK Bodø/Glimt,5,0,home_win,482,1.8,1.8,0.6,1.8,0.0,2.4,2.6,0.8,1.0,3.0,1.8,1.6
+2025-2026,2026-03-17,Chelsea FC,Paris Saint-Germain FC,0,3,away_win,483,2.0,1.8,0.6,1.8,0.2,3.0,2.4,1.8,0.4,1.6,0.6,2.0
+2025-2026,2026-03-18,FC Bayern München,Atalanta BC,4,1,home_win,486,2.8,1.2,0.8,2.4,1.6,2.4,1.4,2.6,0.2,0.6,-1.2,1.2
+2025-2026,2026-03-18,Tottenham Hotspur FC,Club Atlético de Madrid,3,2,home_win,487,2.4,2.0,0.6,1.8,0.4,3.0,2.8,1.8,0.4,1.6,1.0,1.0
+2025-2026,2026-03-18,FC Barcelona,Newcastle United FC,7,2,home_win,488,2.2,1.6,0.6,2.0,0.6,2.0,2.8,1.0,0.6,2.2,1.8,1.6
+2025-2026,2026-03-18,Liverpool FC,Galatasaray SK,4,0,home_win,489,2.2,1.0,0.6,1.8,1.2,1.8,1.8,1.6,0.4,1.4,0.2,0.6
+2025-2026,2026-04-07,Real Madrid CF,FC Bayern München,1,2,away_win,490,2.0,1.2,0.8,2.4,0.8,2.4,3.4,0.8,1.0,3.0,2.6,2.4
+2025-2026,2026-04-07,Sporting Clube de Portugal,Arsenal FC,0,1,away_win,491,2.2,1.8,0.6,1.8,0.4,3.0,2.4,0.8,0.8,2.6,1.6,2.6
+2025-2026,2026-04-08,FC Barcelona,Club Atlético de Madrid,0,2,away_win,493,3.6,1.4,0.8,2.6,2.2,2.4,3.0,2.2,0.4,1.4,0.8,1.0
+2025-2026,2026-04-08,Paris Saint-Germain FC,Liverpool FC,2,0,home_win,492,2.8,1.4,0.6,2.2,1.4,1.6,2.8,0.2,0.8,2.4,2.6,1.8
+2025-2026,2026-04-14,Liverpool FC,Paris Saint-Germain FC,0,2,away_win,494,2.6,0.6,0.6,1.8,2.0,2.4,3.0,1.2,0.8,2.6,1.8,2.0
+2025-2026,2026-04-14,Club Atlético de Madrid,FC Barcelona,1,2,away_win,495,3.2,1.8,0.6,2.0,1.4,2.4,3.2,1.6,0.6,2.0,1.6,1.6
+2025-2026,2026-04-15,FC Bayern München,Real Madrid CF,4,3,home_win,496,3.2,0.8,1.0,3.0,2.4,3.0,1.8,0.8,0.8,2.4,1.0,1.8
+2025-2026,2026-04-15,Arsenal FC,Sporting Clube de Portugal,0,0,draw,497,2.0,0.8,0.8,2.6,1.2,3.0,2.0,1.4,0.6,1.8,0.6,0.8
+2025-2026,2026-04-28,Paris Saint-Germain FC,FC Bayern München,5,4,home_win,498,2.8,0.8,0.8,2.6,2.0,2.2,3.6,1.4,1.0,3.0,2.2,2.4
+2025-2026,2026-04-29,Club Atlético de Madrid,Arsenal FC,1,1,draw,499,2.8,1.6,0.6,1.8,1.2,1.8,1.4,0.6,0.6,2.2,0.8,2.6
+2025-2026,2026-05-05,Arsenal FC,Club Atlético de Madrid,1,0,home_win,500,1.0,0.4,0.4,1.8,0.6,2.6,2.2,1.6,0.4,1.4,0.6,1.6
+2025-2026,2026-05-06,FC Bayern München,Paris Saint-Germain FC,1,1,draw,501,4.0,2.2,0.8,2.4,1.8,3.0,3.4,1.2,1.0,3.0,2.2,2.0
+2025-2026,2026-05-30,Paris Saint-Germain FC,Arsenal FC,1,1,draw,502,2.6,1.0,0.8,2.6,1.6,2.2,1.0,0.2,0.6,2.2,0.8,2.2
