@@ -2,327 +2,328 @@
 from pathlib import Path
 import pandas as pd
 
-# 1. Load and prepare the original dataset
-file_path = Path("data/processed/ucl_matches_all.csv")
 
-df = pd.read_csv(file_path)
+# --------------------------------------------------
+# 1. Load the dataset
+# --------------------------------------------------
 
-df["match_date"] = pd.to_datetime(df["match_date"])
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
-df = df.sort_values("match_date").reset_index(drop=True)
-
-df["match_id"] = range(len(df))
-
-
-# 2. Create home-team match history
-home_matches = df[
-    [
-        "match_id",
-        "match_date",
-        "home_team",
-        "away_team",
-        "home_goals",
-        "away_goals"
-    ]
-].copy()
-
-home_matches.columns = [
-    "match_id",
-    "match_date",
-    "team",
-    "opponent",
-    "goals_scored",
-    "goals_conceded"
-]
-
-home_matches["venue"] = "home"
-
-
-# 3. Create away-team match history
-away_matches = df[
-    [
-        "match_id",
-        "match_date",
-        "away_team",
-        "home_team",
-        "away_goals",
-        "home_goals"
-    ]
-].copy()
-
-away_matches.columns = [
-    "match_id",
-    "match_date",
-    "team",
-    "opponent",
-    "goals_scored",
-    "goals_conceded"
-]
-
-away_matches["venue"] = "away"
-
-
-# 4. Combine both histories
-team_history = pd.concat(
-    [home_matches, away_matches],
-    ignore_index=True
+DATA_PATH = (
+    PROJECT_ROOT
+    / "data"
+    / "processed"
+    / "ucl_matches_with_team_ids.csv"
 )
 
-team_history = team_history.sort_values(
-    ["team", "match_date", "match_id"]
+df = pd.read_csv(DATA_PATH)
+
+df["date"] = pd.to_datetime(df["date"])
+
+df = df.sort_values(
+    by=["date", "season"]
 ).reset_index(drop=True)
 
 
-# 5. Check for multiple matches by the same team on one date
-duplicate_team_dates = team_history.duplicated(
-    subset=["team", "match_date"]
-).sum()
+# --------------------------------------------------
+# 2. Dataset overview
+# --------------------------------------------------
 
-print(f"Duplicate team-date records: {duplicate_team_dates}")
+print("\nFEATURE ENGINEERING PREPARATION")
+print("--------------------------------")
 
-if duplicate_team_dates > 0:
-    raise ValueError("A team has multiple matches on the same date.")
-
-
-# 6. Calculate each team's match result
-team_history["result"] = "draw"
-
-team_history.loc[
-    team_history["goals_scored"] > team_history["goals_conceded"],
-    "result"
-] = "win"
-
-team_history.loc[
-    team_history["goals_scored"] < team_history["goals_conceded"],
-    "result"
-] = "loss"
+print(f"Total matches: {len(df)}")
+print(f"First match date: {df['date'].min()}")
+print(f"Last match date: {df['date'].max()}")
 
 
-# 7. Calculate points and goal difference
-team_history["points"] = 1
+# --------------------------------------------------
+# 3. Calculate team participation
+# --------------------------------------------------
 
-team_history.loc[
-    team_history["result"] == "win",
-    "points"
-] = 3
+home_counts = df["home_team_id"].value_counts()
+away_counts = df["away_team_id"].value_counts()
 
-team_history.loc[
-    team_history["result"] == "loss",
-    "points"
-] = 0
+team_counts = (
+    home_counts.add(away_counts, fill_value=0)
+    .sort_values(ascending=False)
+)
 
-team_history["goal_difference"] = (
-    team_history["goals_scored"]
-    - team_history["goals_conceded"]
+print(f"\nNumber of teams: {len(team_counts)}")
+
+print("\nTop 10 most frequent teams:")
+print(team_counts.head(10))
+
+
+# --------------------------------------------------
+# 4. Initialize team histories
+# --------------------------------------------------
+
+team_history = {}
+home_history = {}
+away_history = {}
+
+match_features = []
+
+
+# --------------------------------------------------
+# 5. Calculate pre-match rolling features
+# --------------------------------------------------
+
+for match_date, daily_matches in df.groupby("date", sort=True):
+
+    daily_features = []
+
+    # Calculate features using only previous matchdays
+    for _, row in daily_matches.iterrows():
+
+        home_team = row["home_team_id"]
+        away_team = row["away_team_id"]
+
+        # Overall team history
+        home_previous = team_history.get(home_team, [])
+        away_previous = team_history.get(away_team, [])
+
+        home_last_5 = home_previous[-5:]
+        away_last_5 = away_previous[-5:]
+
+        # Overall points
+        home_last_5_points = sum(
+            match["points"] for match in home_last_5
+        )
+
+        away_last_5_points = sum(
+            match["points"] for match in away_last_5
+        )
+
+        # Overall goal difference
+        home_last_5_gd = sum(
+            match["goal_difference"] for match in home_last_5
+        )
+
+        away_last_5_gd = sum(
+            match["goal_difference"] for match in away_last_5
+        )
+
+        # Overall goals scored and conceded
+        home_last_5_goals_scored = sum(
+            match["goals_scored"] for match in home_last_5
+        )
+
+        home_last_5_goals_conceded = sum(
+            match["goals_conceded"] for match in home_last_5
+        )
+
+        away_last_5_goals_scored = sum(
+            match["goals_scored"] for match in away_last_5
+        )
+
+        away_last_5_goals_conceded = sum(
+            match["goals_conceded"] for match in away_last_5
+        )
+
+        # Venue-specific histories
+        home_previous_home = home_history.get(home_team, [])
+        away_previous_away = away_history.get(away_team, [])
+
+        home_last_5_home = home_previous_home[-5:]
+        away_last_5_away = away_previous_away[-5:]
+
+        # Points in previous home/away matches
+        home_last_5_home_points = sum(
+            match["points"] for match in home_last_5_home
+        )
+
+        away_last_5_away_points = sum(
+            match["points"] for match in away_last_5_away
+        )
+
+        # Goal difference in previous home/away matches
+        home_last_5_home_gd = sum(
+            match["goal_difference"] for match in home_last_5_home
+        )
+
+        away_last_5_away_gd = sum(
+            match["goal_difference"] for match in away_last_5_away
+        )
+
+        # Number of previous matches at each venue
+        home_previous_home_matches = len(home_previous_home)
+        away_previous_away_matches = len(away_previous_away)
+
+        # Store all features for the current match
+        daily_features.append({
+
+            "home_last_5_points": home_last_5_points,
+            "away_last_5_points": away_last_5_points,
+
+            "home_last_5_gd": home_last_5_gd,
+            "away_last_5_gd": away_last_5_gd,
+
+            "home_last_5_goals_scored": home_last_5_goals_scored,
+            "home_last_5_goals_conceded": home_last_5_goals_conceded,
+
+            "away_last_5_goals_scored": away_last_5_goals_scored,
+            "away_last_5_goals_conceded": away_last_5_goals_conceded,
+
+            "home_last_5_home_points": home_last_5_home_points,
+            "away_last_5_away_points": away_last_5_away_points,
+
+            "home_last_5_home_gd": home_last_5_home_gd,
+            "away_last_5_away_gd": away_last_5_away_gd,
+
+            "home_previous_home_matches": home_previous_home_matches,
+            "away_previous_away_matches": away_previous_away_matches
+
+        })
+
+    # Save today's features before updating histories
+    match_features.extend(daily_features)
+
+    # Update histories only after all matches on this date
+    # have had their features calculated
+
+    for _, row in daily_matches.iterrows():
+
+        home_team = row["home_team_id"]
+        away_team = row["away_team_id"]
+
+        home_goals = row["home_goals"]
+        away_goals = row["away_goals"]
+
+        # Calculate match points
+        if home_goals > away_goals:
+            home_points, away_points = 3, 0
+
+        elif home_goals < away_goals:
+            home_points, away_points = 0, 3
+
+        else:
+            home_points, away_points = 1, 1
+
+        # Calculate goal differences
+        home_gd = home_goals - away_goals
+        away_gd = away_goals - home_goals
+
+        # Store home team's match information
+        home_match = {
+            "points": home_points,
+            "goal_difference": home_gd,
+            "goals_scored": home_goals,
+            "goals_conceded": away_goals
+        }
+
+        # Store away team's match information
+        away_match = {
+            "points": away_points,
+            "goal_difference": away_gd,
+            "goals_scored": away_goals,
+            "goals_conceded": home_goals
+        }
+
+        # Update overall histories
+        team_history.setdefault(home_team, []).append(home_match)
+        team_history.setdefault(away_team, []).append(away_match)
+
+        # Update venue-specific histories
+        home_history.setdefault(home_team, []).append(home_match)
+        away_history.setdefault(away_team, []).append(away_match)
+
+
+# --------------------------------------------------
+# 6. Add features to the dataset
+# --------------------------------------------------
+
+features_df = pd.DataFrame(match_features)
+
+df = pd.concat(
+    [df.reset_index(drop=True), features_df],
+    axis=1
 )
 
 
-# 8. Calculate general form over the previous five matches
+# --------------------------------------------------
+# 7. Validate generated features
+# --------------------------------------------------
 
-# Average goals scored
-team_history["avg_goals_scored_last5"] = (
-    team_history.groupby("team")["goals_scored"]
-    .transform(
-        lambda x: x.shift(1).rolling(
-            window=5,
-            min_periods=5
-        ).mean()
-    )
-)
-
-# Average goals conceded
-team_history["avg_goals_conceded_last5"] = (
-    team_history.groupby("team")["goals_conceded"]
-    .transform(
-        lambda x: x.shift(1).rolling(
-            window=5,
-            min_periods=5
-        ).mean()
-    )
-)
-
-# Win rate
-team_history["is_win"] = (
-    team_history["result"] == "win"
-).astype(float)
-
-team_history["win_rate_last5"] = (
-    team_history.groupby("team")["is_win"]
-    .transform(
-        lambda x: x.shift(1).rolling(
-            window=5,
-            min_periods=5
-        ).mean()
-    )
-)
-
-# Average points per game
-team_history["points_per_game_last5"] = (
-    team_history.groupby("team")["points"]
-    .transform(
-        lambda x: x.shift(1).rolling(
-            window=5,
-            min_periods=5
-        ).mean()
-    )
-)
-
-# Average goal difference
-team_history["goal_difference_last5"] = (
-    team_history.groupby("team")["goal_difference"]
-    .transform(
-        lambda x: x.shift(1).rolling(
-            window=5,
-            min_periods=5
-        ).mean()
-    )
-)
-
-
-# 9. Calculate venue-specific form
-# A minimum of three previous matches at that venue is required.
-
-team_history["venue_points_per_game_last5"] = (
-    team_history.groupby(["team", "venue"])["points"]
-    .transform(
-        lambda x: x.shift(1).rolling(
-            window=5,
-            min_periods=3
-        ).mean()
-    )
-)
-
-
-# 10. Select all features
 feature_columns = [
-    "avg_goals_scored_last5",
-    "avg_goals_conceded_last5",
-    "win_rate_last5",
-    "points_per_game_last5",
-    "goal_difference_last5",
-    "venue_points_per_game_last5"
+    "home_last_5_points",
+    "away_last_5_points",
+
+    "home_last_5_gd",
+    "away_last_5_gd",
+
+    "home_last_5_goals_scored",
+    "home_last_5_goals_conceded",
+
+    "away_last_5_goals_scored",
+    "away_last_5_goals_conceded",
+
+    "home_last_5_home_points",
+    "away_last_5_away_points",
+
+    "home_last_5_home_gd",
+    "away_last_5_away_gd",
+
+    "home_previous_home_matches",
+    "away_previous_away_matches"
 ]
 
+print("\nROLLING FORM FEATURES")
+print("---------------------")
 
-# 11. Prepare home-team features
-home_form = team_history[
-    ["match_id", "team", "venue"] + feature_columns
-].copy()
+print(f"Total matches: {len(df)}")
+print(f"Total features: {len(feature_columns)}")
 
-home_form = home_form[
-    home_form["venue"] == "home"
-].drop(columns="venue")
+print("\nFirst 10 matches:")
 
-home_form = home_form.rename(
-    columns={
-        "team": "home_team",
-        "avg_goals_scored_last5": "home_avg_goals_scored",
-        "avg_goals_conceded_last5": "home_avg_goals_conceded",
-        "win_rate_last5": "home_win_rate",
-        "points_per_game_last5": "home_points_per_game",
-        "goal_difference_last5": "home_goal_difference",
-        "venue_points_per_game_last5": "home_venue_points_per_game"
-    }
-)
-
-
-# 12. Prepare away-team features
-away_form = team_history[
-    ["match_id", "team", "venue"] + feature_columns
-].copy()
-
-away_form = away_form[
-    away_form["venue"] == "away"
-].drop(columns="venue")
-
-away_form = away_form.rename(
-    columns={
-        "team": "away_team",
-        "avg_goals_scored_last5": "away_avg_goals_scored",
-        "avg_goals_conceded_last5": "away_avg_goals_conceded",
-        "win_rate_last5": "away_win_rate",
-        "points_per_game_last5": "away_points_per_game",
-        "goal_difference_last5": "away_goal_difference",
-        "venue_points_per_game_last5": "away_venue_points_per_game"
-    }
-)
-
-
-# 13. Merge features into the original match dataset
-match_features = df.merge(
-    home_form,
-    on=["match_id", "home_team"],
-    how="left",
-    validate="one_to_one"
-)
-
-match_features = match_features.merge(
-    away_form,
-    on=["match_id", "away_team"],
-    how="left",
-    validate="one_to_one"
-)
-
-
-# 14. Define the final model features
-model_features = [
-    "home_avg_goals_scored",
-    "home_avg_goals_conceded",
-    "home_win_rate",
-    "away_avg_goals_scored",
-    "away_avg_goals_conceded",
-    "away_win_rate",
-    "home_points_per_game",
-    "away_points_per_game",
-    "home_goal_difference",
-    "away_goal_difference",
-    "home_venue_points_per_game",
-    "away_venue_points_per_game"
-]
-
-
-# 15. Remove matches with incomplete historical features
-match_features_clean = match_features.dropna(
-    subset=model_features
-).copy()
-
-
-# 16. Display dataset information
-print("\n--- FEATURE ENGINEERING V2 ---")
-
-print("\nOriginal dataset shape:")
-print(df.shape)
-
-print("\nDataset after feature engineering:")
-print(match_features.shape)
-
-print("\nClean dataset shape:")
-print(match_features_clean.shape)
-
-print("\nMatches removed:")
-print(len(match_features) - len(match_features_clean))
-
-print("\nMissing values in model features:")
-print(match_features_clean[model_features].isnull().sum())
-
-print("\nOutcome distribution:")
-print(match_features_clean["outcome"].value_counts())
-
-print("\nFirst five matches:")
 print(
-    match_features_clean[
-        ["match_date", "home_team", "away_team", "outcome"]
-        + model_features
-    ].head().to_string(index=False)
+    df[
+        ["date", "home_team_id", "away_team_id"]
+        + feature_columns
+    ]
+    .head(10)
+    .to_string(index=False)
 )
 
+print("\nFeature statistics:")
 
-# 17. Save the enhanced dataset
-output_path = Path("data/processed/ucl_matches_features.csv")
+print(df[feature_columns].describe())
 
-output_path.parent.mkdir(parents=True, exist_ok=True)
+print("\nMissing feature values:")
 
-match_features_clean.to_csv(output_path, index=False)
+print(df[feature_columns].isna().sum())
 
-print("\nEnhanced dataset saved successfully!")
-print(f"Saved to: {output_path}")
+print("\nFirst matchday validation:")
+
+first_matchday = df[df["date"] == df["date"].min()]
+
+print(
+    first_matchday[
+        [
+            "home_last_5_points",
+            "away_last_5_points",
+            "home_last_5_home_points",
+            "away_last_5_away_points",
+            "home_previous_home_matches",
+            "away_previous_away_matches"
+        ]
+    ].to_string(index=False)
+)
+
+print("\nFEATURE ENGINEERING COMPLETED!")
+
+# --------------------------------------------------
+# 8. Save feature-engineered dataset
+# --------------------------------------------------
+
+OUTPUT_PATH = (
+    PROJECT_ROOT
+    / "data"
+    / "processed"
+    / "ucl_matches_with_features.csv"
+)
+
+df.to_csv(OUTPUT_PATH, index=False)
+
+print(f"\nFeature-engineered dataset saved to: {OUTPUT_PATH}")

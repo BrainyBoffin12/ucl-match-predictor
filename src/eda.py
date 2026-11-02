@@ -1,175 +1,210 @@
 
 from pathlib import Path
-import pandas as pd
-import matplotlib
 
-# Use a non-interactive backend to avoid the Windows Tkinter issue
-matplotlib.use("Agg")
+import matplotlib
+matplotlib.use("Agg")  # Generate charts without opening a Tkinter window
 
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
-# 1. Load the combined dataset
-file_path = Path("data/processed/ucl_matches_all.csv")
-df = pd.read_csv(file_path)
+# --------------------------------------------------
+# 1. Project paths
+# --------------------------------------------------
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+DATA_PATH = PROJECT_ROOT / "data" / "processed" / "ucl_matches.csv"
+FIGURES_DIR = PROJECT_ROOT / "reports" / "figures"
 
 
-# 2. Match outcome distribution
+# --------------------------------------------------
+# 2. Load the dataset
+# --------------------------------------------------
+
+df = pd.read_csv(DATA_PATH)
+
+df["date"] = pd.to_datetime(df["date"])
+
+print("\nDATASET OVERVIEW")
+print("----------------")
+print(f"Total matches: {len(df)}")
+print(f"Total seasons: {df['season'].nunique()}")
+
+print("\nFirst 5 matches:")
+print(df.head().to_string(index=False))
+
+print("\nDataset information:")
+df.info()
+
+
+# --------------------------------------------------
+# 3. Outcome distribution
+# --------------------------------------------------
+
 outcome_counts = df["outcome"].value_counts()
 
-outcome_percentages = (
-    df["outcome"].value_counts(normalize=True) * 100
-)
-
-print("\n--- MATCH OUTCOME DISTRIBUTION ---")
-
-print("\nNumber of matches:")
+print("\nOUTCOME DISTRIBUTION")
+print("--------------------")
 print(outcome_counts)
 
-print("\nPercentage of matches:")
-print(outcome_percentages.round(2))
-
-
-# 3. Goal statistics
-df["total_goals"] = df["home_goals"] + df["away_goals"]
-
-print("\n--- GOAL STATISTICS ---")
-
-print("\nAverage goals per match:")
-print(round(df["total_goals"].mean(), 2))
-
-print("\nAverage home goals:")
-print(round(df["home_goals"].mean(), 2))
-
-print("\nAverage away goals:")
-print(round(df["away_goals"].mean(), 2))
-
-print("\nHighest-scoring match:")
-print(df.loc[df["total_goals"].idxmax()])
-
-
-# 4. Visualize average home and away goals
-average_goals = [
-    df["home_goals"].mean(),
-    df["away_goals"].mean()
-]
-
-labels = ["Home teams", "Away teams"]
-
-plt.figure(figsize=(7, 5))
-plt.bar(labels, average_goals)
-
-plt.title("Average Goals: Home vs Away")
-plt.ylabel("Average Goals")
-
-plt.savefig("data/processed/average_goals.png")
-plt.close()
-
-
-# 5. Compare statistics across seasons
-print("\n--- SEASON COMPARISON ---")
-
-print("\nMatches per season:")
-print(df.groupby("season").size())
-
-print("\nAverage goals per match:")
+print("\nOutcome percentages:")
 print(
-    df.groupby("season")["total_goals"]
-    .mean()
-    .round(2)
+    (df["outcome"].value_counts(normalize=True) * 100).round(2)
 )
 
-print("\nOutcome percentages per season:")
 
-outcome_by_season = pd.crosstab(
+# --------------------------------------------------
+# 4. Goals analysis
+# --------------------------------------------------
+
+df["total_goals"] = df["home_goals"] + df["away_goals"]
+
+print("\nGOALS ANALYSIS")
+print("--------------")
+
+print(f"Average goals per match: {df['total_goals'].mean():.2f}")
+print(f"Average home goals: {df['home_goals'].mean():.2f}")
+print(f"Average away goals: {df['away_goals'].mean():.2f}")
+
+print(f"Highest scoring match: {df['total_goals'].max()} goals")
+print(f"Matches with 0 goals: {(df['total_goals'] == 0).sum()}")
+
+
+# --------------------------------------------------
+# 5. Outcome distribution by season
+# --------------------------------------------------
+
+season_outcomes = pd.crosstab(
     df["season"],
     df["outcome"],
     normalize="index"
 ) * 100
 
-print(outcome_by_season.round(2))
+print("\nOUTCOME DISTRIBUTION BY SEASON (%)")
+print("----------------------------------")
+print(season_outcomes.round(2))
 
 
-# 6. Top 10 teams by total goals scored
+# --------------------------------------------------
+# 6. Visualize outcome distribution by season
+# --------------------------------------------------
 
-home_stats = df[["home_team", "home_goals"]].copy()
-home_stats.columns = ["team", "goals_scored"]
+FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
-away_stats = df[["away_team", "away_goals"]].copy()
-away_stats.columns = ["team", "goals_scored"]
+season_outcomes.plot(
+    kind="bar",
+    stacked=True,
+    figsize=(13, 6)
+)
 
-team_goals = pd.concat(
-    [home_stats, away_stats],
+plt.title("UCL Match Outcomes by Season")
+plt.xlabel("Season")
+plt.ylabel("Percentage of Matches (%)")
+plt.xticks(rotation=45)
+plt.legend(title="Outcome")
+plt.tight_layout()
+
+chart_path = FIGURES_DIR / "outcomes_by_season.png"
+
+plt.savefig(
+    chart_path,
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.close()
+
+print(f"\nChart saved successfully: {chart_path}")
+
+
+# --------------------------------------------------
+# 7. Visualize overall outcome distribution
+# --------------------------------------------------
+
+outcome_counts.plot(
+    kind="bar",
+    figsize=(8, 5)
+)
+
+plt.title("Overall UCL Match Outcome Distribution")
+plt.xlabel("Match Outcome")
+plt.ylabel("Number of Matches")
+plt.xticks(rotation=0)
+plt.tight_layout()
+
+chart_path = FIGURES_DIR / "overall_outcome_distribution.png"
+
+plt.savefig(
+    chart_path,
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.close()
+
+print(f"Chart saved successfully: {chart_path}")
+
+
+# --------------------------------------------------
+# 8. Team name inspection
+# --------------------------------------------------
+
+all_teams = pd.concat(
+    [df["home_team"], df["away_team"]],
     ignore_index=True
 )
 
-top_scorers = (
-    team_goals.groupby("team")["goals_scored"]
-    .sum()
-    .sort_values(ascending=False)
-    .head(10)
-)
+team_appearances = all_teams.value_counts().sort_index()
 
-print("\n--- TOP 10 TEAMS BY TOTAL GOALS SCORED ---")
-print(top_scorers)
+print("\nTEAM NAME INSPECTION")
+print("--------------------")
+print(f"Unique team names: {team_appearances.nunique() if False else len(team_appearances)}")
 
+print("\nAll teams and their total appearances:")
+print(team_appearances.to_string())
 
-# 7. Team attacking performance
+# --------------------------------------------------
+# 9. Inspect possible duplicate team identities
+# --------------------------------------------------
 
-team_stats = pd.concat(
-    [home_stats, away_stats],
+team_seasons = pd.concat(
+    [
+        df[["season", "home_team"]].rename(
+            columns={"home_team": "team"}
+        ),
+        df[["season", "away_team"]].rename(
+            columns={"away_team": "team"}
+        )
+    ],
     ignore_index=True
 )
 
-team_performance = (
-    team_stats.groupby("team")
-    .agg(
-        matches_played=("goals_scored", "count"),
-        total_goals=("goals_scored", "sum"),
-        average_goals=("goals_scored", "mean")
-    )
-    .sort_values("average_goals", ascending=False)
-)
+team_seasons = team_seasons.drop_duplicates()
 
-print("\n--- TOP 10 TEAMS BY AVERAGE GOALS SCORED ---")
+candidate_groups = [
+    ["Bayern München (GER)", "FC Bayern München (GER)"],
+    ["Atlético Madrid (ESP)", "Club Atlético de Madrid (ESP)"],
+    ["AS Monaco (FRA)", "AS Monaco FC (MCO)"],
+    ["Atalanta (ITA)", "Atalanta BC (ITA)"],
+    ["Real Madrid (ESP)", "Real Madrid CF (ESP)"],
+    ["Manchester City (ENG)", "Manchester City FC (ENG)"],
+    ["Juventus (ITA)", "Juventus FC (ITA)"],
+    ["Paris Saint-Germain (FRA)", "Paris Saint-Germain FC (FRA)"],
+    ["PSV (NED)", "PSV Eindhoven (NED)"]
+]
 
-print(
-    team_performance[
-        team_performance["matches_played"] >= 15
-    ].head(10).round(2)
-)
+print("\nPOSSIBLE DUPLICATE TEAM IDENTITIES")
+print("----------------------------------")
 
+for group in candidate_groups:
+    print(f"\n{group[0]} / {group[1]}")
 
-# 8. Team defensive performance
+    for team in group:
+        seasons = team_seasons.loc[
+            team_seasons["team"] == team, "season"
+        ].tolist()
 
-home_defense = df[["home_team", "away_goals"]].copy()
-home_defense.columns = ["team", "goals_conceded"]
+        print(f"  {team}: {', '.join(seasons)}")
 
-away_defense = df[["away_team", "home_goals"]].copy()
-away_defense.columns = ["team", "goals_conceded"]
-
-defense_stats = pd.concat(
-    [home_defense, away_defense],
-    ignore_index=True
-)
-
-team_defense = (
-    defense_stats.groupby("team")
-    .agg(
-        matches_played=("goals_conceded", "count"),
-        total_conceded=("goals_conceded", "sum"),
-        average_conceded=("goals_conceded", "mean")
-    )
-    .sort_values("average_conceded", ascending=True)
-)
-
-print("\n--- TOP 10 TEAMS BY DEFENSIVE PERFORMANCE ---")
-
-print(
-    team_defense[
-        team_defense["matches_played"] >= 15
-    ].head(10).round(2)
-)
-
-
-print("\nEDA analysis completed successfully!")
+print("\nEDA COMPLETED SUCCESSFULLY!")
