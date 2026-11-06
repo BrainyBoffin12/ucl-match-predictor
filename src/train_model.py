@@ -5,14 +5,12 @@ import pandas as pd
 
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.inspection import permutation_importance
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
     accuracy_score,
     balanced_accuracy_score,
-    classification_report,
-    confusion_matrix,
-    f1_score
+    f1_score,
+    classification_report
 )
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -31,6 +29,8 @@ DATA_PATH = (
     / "ucl_matches_with_features.csv"
 )
 
+REPORTS_PATH = PROJECT_ROOT / "reports"
+
 
 # ==========================================
 # LOAD DATASET
@@ -44,10 +44,12 @@ print(f"Total matches: {len(df)}")
 
 
 # ==========================================
-# DEFINE FEATURES AND TARGET
+# DEFINE FEATURE SETS
 # ==========================================
 
-feature_columns = [
+# Original 15 features: without Elo
+
+baseline_features = [
     "home_last_5_points",
     "away_last_5_points",
     "last_5_points_difference",
@@ -65,10 +67,43 @@ feature_columns = [
     "away_previous_away_matches"
 ]
 
+
+# New 18 features: original 15 + 3 Elo features
+
+elo_features = baseline_features + [
+    "home_elo",
+    "away_elo",
+    "elo_difference"
+]
+
 target_column = "outcome"
 
-X = df[feature_columns]
-y = df[target_column]
+
+# Check that all required columns exist
+
+required_columns = (
+    baseline_features
+    + ["home_elo", "away_elo", "elo_difference", target_column]
+)
+
+missing_columns = [
+    column for column in required_columns
+    if column not in df.columns
+]
+
+if missing_columns:
+    raise ValueError(
+        f"Missing columns in dataset: {missing_columns}"
+    )
+
+if df[required_columns].isnull().any().any():
+    raise ValueError("Missing values detected in required columns.")
+
+
+print("\nFEATURE SETS")
+print("------------")
+print(f"Baseline features: {len(baseline_features)}")
+print(f"Elo features: {len(elo_features)}")
 
 
 # ==========================================
@@ -98,315 +133,232 @@ train_mask = df["season"].isin(train_seasons)
 validation_mask = df["season"].isin(validation_seasons)
 test_mask = df["season"].isin(test_seasons)
 
-X_train = X[train_mask]
-y_train = y[train_mask]
-
-X_validation = X[validation_mask]
-y_validation = y[validation_mask]
-
-X_test = X[test_mask]
-y_test = y[test_mask]
+y_train = df.loc[train_mask, target_column]
+y_validation = df.loc[validation_mask, target_column]
 
 print("\nDATA SPLIT")
 print("----------")
-print(f"Training matches: {len(X_train)}")
-print(f"Validation matches: {len(X_validation)}")
-print(f"Testing matches: {len(X_test)}")
+print(f"Training matches: {len(y_train)}")
+print(f"Validation matches: {len(y_validation)}")
+print(f"Testing matches reserved for final evaluation: {test_mask.sum()}")
 
 
 # ==========================================
-# MODEL EVALUATION FUNCTION
+# DEFINE MODELS
 # ==========================================
 
-def evaluate_model(model, X_val, y_val, model_name):
-
-    predictions = model.predict(X_val)
-
-    accuracy = accuracy_score(y_val, predictions)
-
-    balanced_accuracy = balanced_accuracy_score(
-        y_val,
-        predictions
-    )
-
-    macro_f1 = f1_score(
-        y_val,
-        predictions,
-        average="macro",
-        zero_division=0
-    )
-
-    print(f"\n{model_name}")
-    print("-" * len(model_name))
-
-    print(f"Accuracy: {accuracy:.4f}")
-    print(f"Balanced accuracy: {balanced_accuracy:.4f}")
-    print(f"Macro F1: {macro_f1:.4f}")
-
-    print("\nClassification report:")
-
-    print(
-        classification_report(
-            y_val,
-            predictions,
-            zero_division=0
-        )
-    )
-
-    labels = ["away_win", "draw", "home_win"]
-
-    print("Confusion matrix:")
-
-    print(
-        confusion_matrix(
-            y_val,
-            predictions,
-            labels=labels
-        )
-    )
+def create_models():
 
     return {
-        "Model": model_name,
-        "Accuracy": accuracy,
-        "Balanced Accuracy": balanced_accuracy,
-        "Macro F1": macro_f1
+        "Standard Logistic Regression": Pipeline([
+            ("scaler", StandardScaler()),
+            ("model", LogisticRegression(max_iter=1000))
+        ]),
+
+        "Balanced Logistic Regression": Pipeline([
+            ("scaler", StandardScaler()),
+            ("model", LogisticRegression(
+                max_iter=1000,
+                class_weight="balanced"
+            ))
+        ]),
+
+        "Random Forest": RandomForestClassifier(
+            n_estimators=200,
+            random_state=42,
+            n_jobs=-1
+        )
     }
 
 
 # ==========================================
-# 1. DUMMY CLASSIFIER
+# EVALUATION FUNCTION
 # ==========================================
 
-dummy_model = DummyClassifier(
-    strategy="most_frequent"
-)
+def evaluate_model(model, X_train, y_train, X_val, y_val):
 
-dummy_model.fit(X_train, y_train)
+    model.fit(X_train, y_train)
 
-dummy_results = evaluate_model(
-    dummy_model,
-    X_validation,
-    y_validation,
-    "Dummy Classifier"
-)
+    predictions = model.predict(X_val)
 
-
-# ==========================================
-# 2. STANDARD LOGISTIC REGRESSION
-# ==========================================
-
-logistic_model = Pipeline([
-    ("scaler", StandardScaler()),
-    ("logisticregression", LogisticRegression(
-        max_iter=1000
-    ))
-])
-
-logistic_model.fit(X_train, y_train)
-
-logistic_results = evaluate_model(
-    logistic_model,
-    X_validation,
-    y_validation,
-    "Standard Logistic Regression"
-)
+    return {
+        "Accuracy": accuracy_score(y_val, predictions),
+        "Balanced Accuracy": balanced_accuracy_score(
+            y_val, predictions
+        ),
+        "Macro F1": f1_score(
+            y_val,
+            predictions,
+            average="macro",
+            zero_division=0
+        )
+    }
 
 
 # ==========================================
-# LOGISTIC REGRESSION COEFFICIENTS
+# DUMMY CLASSIFIER
 # ==========================================
 
-coefficients = (
-    logistic_model
-    .named_steps["logisticregression"]
-    .coef_
-)
+# This model always predicts the most frequent class.
+# It provides a simple reference point.
 
-coefficient_df = pd.DataFrame(
-    coefficients.T,
-    index=feature_columns,
-    columns=logistic_model
-    .named_steps["logisticregression"]
-    .classes_
-)
+dummy_model = DummyClassifier(strategy="most_frequent")
 
-print("\nLOGISTIC REGRESSION COEFFICIENTS")
-print("--------------------------------")
+dummy_X_train = df.loc[train_mask, baseline_features]
+dummy_X_val = df.loc[validation_mask, baseline_features]
 
-print(coefficient_df.to_string())
+dummy_model.fit(dummy_X_train, y_train)
 
+dummy_predictions = dummy_model.predict(dummy_X_val)
 
-# ==========================================
-# LOGISTIC REGRESSION CLASS PROBABILITIES
-# ==========================================
-
-probabilities = logistic_model.predict_proba(X_validation)
-
-print("\nLOGISTIC REGRESSION CLASS PROBABILITIES")
-print("---------------------------------------")
-
-print("Class order:")
-print(logistic_model.classes_)
-
-probability_df = pd.DataFrame(
-    probabilities,
-    columns=logistic_model.classes_
-)
-
-print("\nFirst 10 validation predictions:")
-print(probability_df.head(10).to_string(index=False))
-
-print("\nAverage predicted probability per class:")
-
-print(
-    probability_df.mean().to_string()
-)
-
-print("\nActual validation outcome distribution:")
-
-print(
-    y_validation.value_counts(normalize=True)
-    .reindex(logistic_model.classes_)
-    .to_string()
-)
+dummy_results = {
+    "Feature Set": "Reference",
+    "Model": "Dummy Classifier",
+    "Accuracy": accuracy_score(y_validation, dummy_predictions),
+    "Balanced Accuracy": balanced_accuracy_score(
+        y_validation, dummy_predictions
+    ),
+    "Macro F1": f1_score(
+        y_validation,
+        dummy_predictions,
+        average="macro",
+        zero_division=0
+    )
+}
 
 
 # ==========================================
-# DRAW PROBABILITY ANALYSIS
+# TRAIN AND COMPARE BOTH FEATURE SETS
 # ==========================================
 
-validation_probability_analysis = probability_df.copy()
+all_results = [dummy_results]
 
-validation_probability_analysis["actual_outcome"] = (
-    y_validation.reset_index(drop=True)
-)
+feature_sets = {
+    "Baseline (15 features)": baseline_features,
+    "With Elo (18 features)": elo_features
+}
 
-print("\nDRAW PROBABILITY BY ACTUAL OUTCOME")
-print("----------------------------------")
+for feature_set_name, features in feature_sets.items():
 
-print(
-    validation_probability_analysis
-    .groupby("actual_outcome")["draw"]
-    .agg(["count", "mean", "median"])
-    .to_string()
-)
+    print("\n" + "=" * 55)
+    print(f"EXPERIMENT: {feature_set_name}")
+    print("=" * 55)
 
+    X_train = df.loc[train_mask, features]
+    X_val = df.loc[validation_mask, features]
 
-# ==========================================
-# 3. BALANCED LOGISTIC REGRESSION
-# ==========================================
+    models = create_models()
 
-balanced_logistic_model = Pipeline([
-    ("scaler", StandardScaler()),
-    ("logisticregression", LogisticRegression(
-        max_iter=1000,
-        class_weight="balanced"
-    ))
-])
+    for model_name, model in models.items():
 
-balanced_logistic_model.fit(X_train, y_train)
+        metrics = evaluate_model(
+            model,
+            X_train,
+            y_train,
+            X_val,
+            y_validation
+        )
 
-balanced_logistic_results = evaluate_model(
-    balanced_logistic_model,
-    X_validation,
-    y_validation,
-    "Balanced Logistic Regression"
-)
+        result = {
+            "Feature Set": feature_set_name,
+            "Model": model_name,
+            **metrics
+        }
 
+        all_results.append(result)
 
-# ==========================================
-# 4. RANDOM FOREST
-# ==========================================
+        print(f"\n{model_name}")
+        print("-" * len(model_name))
+        print(f"Accuracy: {metrics['Accuracy']:.4f}")
+        print(
+            f"Balanced Accuracy: "
+            f"{metrics['Balanced Accuracy']:.4f}"
+        )
+        print(f"Macro F1: {metrics['Macro F1']:.4f}")
 
-random_forest_model = RandomForestClassifier(
-    n_estimators=200,
-    random_state=42,
-    n_jobs=-1
-)
+        # Show the detailed classification report
+        predictions = model.predict(X_val)
 
-random_forest_model.fit(X_train, y_train)
-
-random_forest_results = evaluate_model(
-    random_forest_model,
-    X_validation,
-    y_validation,
-    "Random Forest"
-)
-
-
-# ==========================================
-# RANDOM FOREST FEATURE IMPORTANCE
-# ==========================================
-
-importance_df = pd.DataFrame({
-    "feature": feature_columns,
-    "importance": random_forest_model.feature_importances_
-})
-
-importance_df = importance_df.sort_values(
-    by="importance",
-    ascending=False
-)
-
-print("\nRANDOM FOREST FEATURE IMPORTANCE")
-print("--------------------------------")
-
-print(importance_df.to_string(index=False))
+        print("\nClassification report:")
+        print(
+            classification_report(
+                y_validation,
+                predictions,
+                zero_division=0
+            )
+        )
 
 
 # ==========================================
-# PERMUTATION FEATURE IMPORTANCE
+# FINAL COMPARISON TABLE
 # ==========================================
 
-permutation_result = permutation_importance(
-    random_forest_model,
-    X_validation,
-    y_validation,
-    n_repeats=30,
-    random_state=42,
-    scoring="balanced_accuracy",
-    n_jobs=-1
-)
-
-permutation_df = pd.DataFrame({
-    "feature": feature_columns,
-    "importance_mean": permutation_result.importances_mean,
-    "importance_std": permutation_result.importances_std
-})
-
-permutation_df = permutation_df.sort_values(
-    by="importance_mean",
-    ascending=False
-)
-
-print("\nPERMUTATION FEATURE IMPORTANCE")
-print("--------------------------------")
-
-print(permutation_df.to_string(index=False))
-
-
-# ==========================================
-# MODEL COMPARISON
-# ==========================================
-
-results = [
-    dummy_results,
-    logistic_results,
-    balanced_logistic_results,
-    random_forest_results
-]
-
-comparison_df = pd.DataFrame(results)
+comparison_df = pd.DataFrame(all_results)
 
 comparison_df = comparison_df.sort_values(
-    by="Macro F1",
-    ascending=False
+    by=["Model", "Feature Set"]
 )
 
-print("\nMODEL COMPARISON")
-print("----------------")
+print("\n" + "=" * 65)
+print("BASELINE VS ELO: FINAL COMPARISON")
+print("=" * 65)
 
 print(comparison_df.to_string(index=False))
 
 
-print("\nMODEL TRAINING AND EVALUATION COMPLETED!")
+# ==========================================
+# CALCULATE THE IMPACT OF ELO
+# ==========================================
+
+baseline_results = comparison_df[
+    comparison_df["Feature Set"] == "Baseline (15 features)"
+].set_index("Model")
+
+elo_results = comparison_df[
+    comparison_df["Feature Set"] == "With Elo (18 features)"
+].set_index("Model")
+
+print("\n" + "=" * 65)
+print("IMPACT OF ADDING ELO FEATURES")
+print("=" * 65)
+
+for model_name in baseline_results.index:
+
+    if model_name not in elo_results.index:
+        continue
+
+    print(f"\n{model_name}")
+
+    for metric in [
+        "Accuracy",
+        "Balanced Accuracy",
+        "Macro F1"
+    ]:
+
+        baseline_value = baseline_results.loc[model_name, metric]
+        elo_value = elo_results.loc[model_name, metric]
+
+        difference = elo_value - baseline_value
+
+        print(
+            f"{metric}: "
+            f"{baseline_value:.4f} -> {elo_value:.4f} "
+            f"(change: {difference:+.4f})"
+        )
+
+
+# ==========================================
+# SAVE RESULTS
+# ==========================================
+
+REPORTS_PATH.mkdir(parents=True, exist_ok=True)
+
+output_path = REPORTS_PATH / "baseline_vs_elo_comparison.csv"
+
+comparison_df.to_csv(output_path, index=False)
+
+print("\nRESULTS SAVED")
+print("-------------")
+print(output_path)
+
+print("\nEXPERIMENT COMPLETED!")

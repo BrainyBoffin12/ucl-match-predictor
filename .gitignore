@@ -11,3 +11,6 @@ __pycache__/
 
 # Jupyter temporary files
 .ipynb_checkpoints/
+
+*.pyc
+.DS_Store

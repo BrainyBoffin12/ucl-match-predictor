@@ -1,0 +1,8 @@
+Metric,Value
+Accuracy,0.5
+Balanced Accuracy,0.44680229761855683
+Macro F1,0.44735411602552116
+Draw Precision,0.1595744680851064
+Draw Recall,0.25
+Draw F1,0.19480519480519481
+Predicted Draws,94.0
